@@ -1,0 +1,55 @@
+
+for(iters in 1:Miter){
+  results <- foreach(i=c(1:(numCores)),.errorhandling="pass",.combine=c) %dopar% {
+    b=MASS::mvrnorm(m,rep(0,p),Sbb)*sqrt(n)/sqrt(m)
+    u=MASS::mvrnorm(m,rep(0,p),Siguu)
+    X=b+u
+    remove(b,u)
+    w=MASS::mvrnorm(10*m,rep(0,p),Siguu)
+    Suu=cov(w)
+    remove(w)
+    fit1=entropy.mcp(X,Suu,lamvec=lamvec1,rho=0.05,method="pearson",IC="BIC",thres=0.95)
+    fit2=entropy.mcp(X,Suu,lamvec=lamvec1,rho=0.05,method="pearson",IC="BIC",thres=0.5,Theta.ini=fit1$Theta)
+    fit3=entropy.mcp(X,Suu,lamvec=lamvec1/1.5,rho=0.05,method="pearson",IC="AIC",thres=0.95,Theta.ini=fit1$Theta)
+    fit4=entropy.mcp(X,Suu,lamvec=lamvec1/1.5,rho=0.05,method="pearson",IC="AIC",thres=0.5,Theta.ini=fit1$Theta)
+    
+    fit11=entropy.mcp(X,Suu,lamvec=lamvec1,rho=0.05,method="spearman",IC="BIC",thres=0.95)
+    fit22=entropy.mcp(X,Suu,lamvec=lamvec1,rho=0.05,method="spearman",IC="BIC",thres=0.5,Theta.ini=fit11$Theta)
+    fit33=entropy.mcp(X,Suu,lamvec=lamvec1/1.5,rho=0.05,method="spearman",IC="AIC",thres=0.95,Theta.ini=fit11$Theta)
+    fit44=entropy.mcp(X,Suu,lamvec=lamvec1/1.5,rho=0.05,method="spearman",IC="AIC",thres=0.5,Theta.ini=fit11$Theta)
+    
+    error1=c(entropyloss(Rbb,fit1$Theta),quadraticloss(Rbb,fit1$Theta))
+    error2=c(entropyloss(Rbb,fit2$Theta),quadraticloss(Rbb,fit2$Theta))
+    error3=c(entropyloss(Rbb,fit3$Theta),quadraticloss(Rbb,fit3$Theta))
+    error4=c(entropyloss(Rbb,fit4$Theta),quadraticloss(Rbb,fit4$Theta))
+    error11=c(entropyloss(Rbb,fit11$Theta),quadraticloss(Rbb,fit11$Theta))
+    error22=c(entropyloss(Rbb,fit22$Theta),quadraticloss(Rbb,fit22$Theta))
+    error33=c(entropyloss(Rbb,fit33$Theta),quadraticloss(Rbb,fit33$Theta))
+    error44=c(entropyloss(Rbb,fit44$Theta),quadraticloss(Rbb,fit44$Theta))
+    tptn1=TPTN(Tbb,fit1$Theta)
+    tptn2=TPTN(Tbb,fit2$Theta)
+    tptn3=TPTN(Tbb,fit3$Theta)
+    tptn4=TPTN(Tbb,fit4$Theta)
+    tptn11=TPTN(Tbb,fit11$Theta)
+    tptn22=TPTN(Tbb,fit22$Theta)
+    tptn33=TPTN(Tbb,fit33$Theta)
+    tptn44=TPTN(Tbb,fit44$Theta)
+    return(c(error1,tptn1,error2,tptn2,error3,tptn3,error4,tptn4,error11,tptn11,error22,tptn22,error33,tptn33,error44,tptn44))
+  }
+  B=array(results,c(4,8,numCores))
+  ind=c(((iters-1)*numCores+1):(iters*numCores))
+  RES1[ind,]=t(B[1,,])
+  RES2[ind,]=t(B[2,,])
+  RES3[ind,]=t(B[3,,])
+  RES4[ind,]=t(B[4,,])
+  
+  print(iters)
+  print(colMeans(RES1[1:max(ind),]))
+  print(colMeans(RES2[1:max(ind),]))
+  print(colMeans(RES3[1:max(ind),]))
+  print(colMeans(RES4[1:max(ind),]))
+  save.image(filenames)
+}
+
+
+

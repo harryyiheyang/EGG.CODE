@@ -1,0 +1,39 @@
+for(nn in 13:15){
+  n=nn*2000
+  for(mm in 1:20){
+    m=mm*2000
+    RES1=matrix(0,Miter*numCores,4)
+    for(iters in 1:Miter){
+      w=MASS::mvrnorm(max(10*m,10000),rep(0,p),Siguu)
+      Suu=cov(w)
+      results <- foreach(i=c(1:(numCores)),.errorhandling="pass",.combine=c) %dopar% {
+        b=MASS::mvrnorm(m,rep(0,p),Sbb)*sqrt(n)/sqrt(m)
+        u=MASS::mvrnorm(m,rep(0,p),Siguu)
+        b[1:round(m*UHPratio),1:5]=b[1:round(m*UHPratio),1:5]+UHPshift/sqrt(m)*sqrt(n)
+        X=b+u
+        remove(b,u)
+        S1=cov(X)-Suu
+        S2=spearmancov(X)-Suu
+        S3=cov(X)
+        S4=spearmancov(X)
+        f1=norm((S1-Sbb*sqrt(n)/sqrt(m))/sqrt(n)*sqrt(m),"M")
+        f2=norm((S2-Sbb*sqrt(n)/sqrt(m))/sqrt(n)*sqrt(m),"M")
+        f3=norm((S3-Sbb*sqrt(n)/sqrt(m))/sqrt(n)*sqrt(m),"M")
+        f4=norm((S4-Sbb*sqrt(n)/sqrt(m))/sqrt(n)*sqrt(m),"M")
+        return(c(f1,f2,f3,f4))
+      }
+      B=matrix(results,4,numCores)
+      ind=c(((iters-1)*numCores+1):(iters*numCores))
+      RES1[ind,]=t(B)
+      print(iters)
+      print(colMeans(RES1[1:max(ind),]))
+    }
+    res1=colMeans(RES1)
+    Ent1[nn,mm]=res1[1]
+    Ent2[nn,mm]=res1[1]
+    Ent3[nn,mm]=res1[1]
+    Ent4[nn,mm]=res1[1]
+  }
+}
+
+

@@ -1,0 +1,73 @@
+library(EGG)
+library(igraph)
+library(RColorBrewer)
+getPalette = colorRampPalette(brewer.pal(11, "BrBG"))
+colors=getPalette(7)
+
+# Load the estimation error correlation matrix
+R=readRDS("EURZR.rds")
+# Load the Zscore Matrix of Traits used for estimating genetic precision matrix
+BETA=readRDS("EURZZ.rds");BETA=as.matrix(BETA[,-1])
+
+# Applying  EGG for estimating the genetic precision matrix
+fit1=entropy.mcp.spearman.sampling(BETA,Rnoise=R,lamvec=c(30:62)/3252,max.eps=0.005,max.iter=25,rho=0.05,mineig=0.01,subfrac=0.5,subthres=0.9,subtime=300,alpha=0)
+plot(rowMeans(fit1$cv.error))
+
+# Applying graphical lasso for estimating the genetic precision matrix based on Pearson correlation matrix estimate
+S=cor(BETA)
+n=dim(BETA)[1]
+E=matrix(0,300,30)
+B=array(0,c(300,30,20,20))
+for(k in 1:300){
+ind=sample(n,0.5*n,replace=F)
+BETA1=BETA[ind,]
+BETA2=BETA[-ind,]
+S1=cor(BETA1)
+S2=cor(BETA2)
+for(i in 1:30){
+fit=glasso::glasso(s=S1,rho=i/1000)
+w=fit$wi
+df=(20+sum(w!=0))/2
+E[k,i]=entropyloss(A=S2,B=w)
+B[k,i,,]=w
+}
+}
+istar=which.min(colMeans(E))
+B=B[,istar,,]
+K=S*0
+for(i in 1:300){
+K=K+(B[i,,]!=0)/300
+}
+fit=glasso::glasso(s=S,rho=istar/1000)
+wcor=fit$wi*(K>0.99)
+plot(colMeans(E))
+
+# Applying graphical lasso for estimating the genetic precision matrix based on Spearman correlation matrix estimate
+S=spearmancov(BETA)
+n=dim(BETA)[1]
+E=matrix(0,300,30)
+B=array(0,c(300,30,20,20))
+for(k in 1:300){
+  ind=sample(n,0.5*n,replace=F)
+  BETA1=BETA[ind,]
+  BETA2=BETA[-ind,]
+  S1=spearmancov(BETA1)
+  S2=spearmancov(BETA2)
+  for(i in 1:30){
+    fit=glasso::glasso(s=S1,rho=i/200)
+    w=fit$wi
+    df=(20+sum(w!=0))/2
+    E[k,i]=entropyloss(A=S2,B=w)
+    B[k,i,,]=w
+  }
+}
+istar=which.min(colMeans(E))
+B=B[,istar,,]
+K=S*0
+for(i in 1:300){
+  K=K+(B[i,,]!=0)/300
+}
+fit=glasso::glasso(s=S,rho=istar/200)
+wspearman=fit$wi*(K>0.99)
+plot(colMeans(E))
+

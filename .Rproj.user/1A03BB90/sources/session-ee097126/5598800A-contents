@@ -1,0 +1,35 @@
+module load gcc
+module load R
+R
+library(glasso)
+library(MASS)
+library(foreach)
+library(doParallel)
+library(parallel)
+(numCores <- detectCores())
+cl <- makeCluster(numCores)
+registerDoParallel(cl)
+(Miter=floor(1000/numCores))
+setwd("~/MGG/")
+
+Ent1=Ent2=Ent3=Ent4=matrix(0,20,20)
+filenames="results/dimension/AR3-UHP1.RData"
+source("basicfunction.R")
+source("mainfunction.R")
+UHPratio=0.05
+UHPshift=5
+n=200000
+m=1000
+p=20
+Nover=kronecker(CScov(5,0.5),matrix(1,p/5,p/5))
+#Nover=diag(p)
+#Sbb=ARcov(p,0.5)/5
+A=MAcov(p,c(1,0.6,-0.4,-0.2));A=diag(p)+A*lower.tri(A)
+Tbb=t(A)%*%A;Sbb=solve(Tbb)/10
+Rbb=cov2cor(Sbb)
+Tbb=solve(Rbb);Tbb[abs(Tbb)<0.001]=0
+Siguu=CScov(p,0.5)*Nover
+lamvec1=c(11:40)*sqrt(log(p)*sqrt(m)/n)/30
+iterstar=1
+source("program6.R")
+
